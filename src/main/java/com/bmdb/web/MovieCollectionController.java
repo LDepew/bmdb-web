@@ -19,6 +19,9 @@ public class MovieCollectionController {
 	@Autowired
 	private MovieCollectionRepo movieCollectionRepo;
 
+	@Autowired
+	private UserRepo userRepo;
+
 	@GetMapping("/")
 	public List<MovieCollection> getAllUsers() {
 		return movieCollectionRepo.findAll();
@@ -29,25 +32,35 @@ public class MovieCollectionController {
 		return movieCollectionRepo.findById(id).get();
 	}
 	
-	@PostMapping("/") 
-	public MovieCollection create(@RequestBody MovieCollection movieCollection) {
-		return movieCollectionRepo.save(movieCollection);
-	}
-	
 	@PostMapping("/")
 	public MovieCollection addMovieCollection(@RequestBody MovieCollection movieCollection) {
 		//save mc
 		movieCollectionRepo.save(movieCollection);
-		//get all mc's for this user
-		List<MovieCollection> movieCollections = 
-				movieCollectionRepo.findAllByUserId(movieCollection.getUser().getId());
-		//declare newTotal = 0
-		//loop thru mcs
-		//add purchase price to newTotal
-		//set newTotal in user
-		//save user
+		//recalculate collection value
+		recalculateCollectionValue(movieCollection);
 		return movieCollectionRepo.save(movieCollection);
 	}
+	
+	private void recalculateCollectionValue(MovieCollection movieCollection) {
+		User u = movieCollection.getUser();
+		//get all mc's for this user
+		List<MovieCollection> movieCollections = 
+				movieCollectionRepo.findAllByUserId(u.getId());
+		//declare newTotal = 0
+		double newTotal = 0.0;
+		//loop thru mcs
+		for (MovieCollection movieCollect:movieCollections) {
+			//add purchase price to newTotal
+			newTotal += movieCollection.getPurchasePrice();
+		}
+		
+		//set newTotal in user
+		u.setCollectionValue(newTotal);
+		//save user
+		userRepo.save(u);
+		
+	}
+	
 	
 	@PutMapping("/") 
 	public MovieCollection updateMovieCollection(@RequestBody MovieCollection movieCollection) {
